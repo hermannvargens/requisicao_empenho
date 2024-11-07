@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capacidade de Empenho</title>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        h1 {
+            color: #007BFF;
+            font-size: 2em;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #007BFF;
+        }
+
+        select {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 300px; /* Aumenta a altura do select */
+            overflow-y: auto; /* Adiciona rolagem vertical se necessário */
+        }
+
+        #tipoCompra {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 50px; /* Aumenta a altura do select */
+            overflow-y: auto; /* Adiciona rolagem vertical se necessário */
+        }
+
+        button {
+            background-color: #28A745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #totalSaldoEmpenho {
+            position: fixed; /* Fixa o elemento */
+            top: 20px; /* Distância do topo */
+            right: 20px; /* Distância da direita */
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007BFF;
+            background-color: #f8f9fa; /* Fundo para melhor visibilidade */
+            padding: 10px; /* Adiciona algum espaço interno */
+            border: 1px solid #dee2e6; /* Adiciona uma borda */
+            border-radius: 4px; /* Arredonda os cantos */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Sombra */
+        }
+
+        select:focus {
+            outline: 3px solid #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <header>
+    <h1>Capacidade de Empenho</h1>
+    </header>
+
+    <label for="tipoCompra">Tipo de Compra:</label>
+    <select id="tipoCompra" multiple></select>
+
+    <label for="numeroCompra">Número da Compra:</label>
+    <select id="numeroCompra" multiple></select>
+    
+    <label for="fornecedor">Fornecedor:</label>
+    <select id="fornecedor" multiple></select>
+    
+    <label for="itens">Número do Item - CATMAT - Descrição - Val. Unitário - Saldo para Empenho</label>
+    <select id="itens" multiple></select>
+
+    <div id="totalSaldoEmpenho">Total Saldo para Empenho: R$ 0,00</div>
+
+    <script>
+        async function fetchCSV(url) {
+            const response = await fetch(url);
+            const data = await response.text();
+            return data;
+        }
+
+        function parseCSV(data, delimiter = ';') {
+            const rows = data.split('\n').map(row => row.split(delimiter));
+            const headers = rows.shift();
+            return { headers, rows };
+        }
+
+        function populateTipoCompraOptions(rows) {
+            const tipoCompraSet = new Set();
+            rows.forEach(row => tipoCompraSet.add(row[10]));
+            const tipoCompraSelect = document.getElementById('tipoCompra');
+            tipoCompraSelect.innerHTML = '';
+            tipoCompraSet.forEach(tipoCompra => {
+                const option = document.createElement('option');
+                option.value = tipoCompra;
+                option.textContent = tipoCompra;
+                tipoCompraSelect.appendChild(option);
+            });
+        }
+
+        function populateNumeroCompraOptions(rows, selectedTipoCompras) {
+            const numeroCompraSet = new Set();
+            const numeroCompraSelect = document.getElementById('numeroCompra');
+            numeroCompraSelect.innerHTML = '';
+
+            const numeroCompraMap = {};
+
+            rows.forEach(row => {
+                if (selectedTipoCompras.includes(row[10])) {
+                    const numeroCompra = row[0];
+                    const objeto = row[14];
+
+                    numeroCompraSet.add(numeroCompra);
+                    numeroCompraMap[numeroCompra] = objeto;
+                }
+            });
+
+            numeroCompraSet.forEach(numeroCompra => {
+                const option = document.createElement('option');
+                option.value = numeroCompra;
+                option.textContent = `${numeroCompra} - ${numeroCompraMap[numeroCompra]}`;
+                numeroCompraSelect.appendChild(option);
+            });
+        }
+
+        function populateFornecedorOptions(rows, selectedTipoCompras, selectedNumeroCompras) {
+            const fornecedorSet = new Set();
+            rows.forEach(row => {
+                if (selectedTipoCompras.includes(row[10]) && selectedNumeroCompras.includes(row[0])) {
+                    fornecedorSet.add(row[6]);
+                }
+            });
+            const fornecedorSelect = document.getElementById('fornecedor');
+            fornecedorSelect.innerHTML = '';
+            fornecedorSet.forEach(fornecedor => {
+                const option = document.createElement('option');
+                option.value = fornecedor;
+                option.textContent = fornecedor;
+                fornecedorSelect.appendChild(option);
+            });
+        }
+
+        function populateItensOptions(rows, selectedTipoCompras, selectedNumeroCompras, selectedFornecedores) {
+            const itensSet = new Set();
+            rows.forEach(row => {
+                if (selectedTipoCompras.includes(row[10]) && selectedNumeroCompras.includes(row[0]) && selectedFornecedores.includes(row[6])) {
+                    const saldoParaEmpenho = parseFloat(row[8]) * parseFloat(row[7]);
+                    const item = `${row[1]} - ${row[2]} - R$ ${parseFloat(row[7]).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - R$ ${saldoParaEmpenho.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    itensSet.add(item);
+                }
+            });
+            const itensSelect = document.getElementById('itens');
+            itensSelect.innerHTML = '';
+            itensSet.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                option.textContent = item;
+                itensSelect.appendChild(option);
+            });
+        }
+
+        function updateTotalSaldoEmpenho(rows, selectedItems) {
+            let total = 0;
+            rows.forEach(row => {
+                const saldoParaEmpenho = parseFloat(row[8]) * parseFloat(row[7]);
+                const item = `${row[1]} - ${row[2]} - R$ ${parseFloat(row[7]).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - R$ ${saldoParaEmpenho.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                if (selectedItems.includes(item)) {
+                    total += saldoParaEmpenho;
+                }
+            });
+            document.getElementById('totalSaldoEmpenho').textContent = `Total Saldo para Empenho: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        document.getElementById('tipoCompra').addEventListener('change', function() {
+            const selectedTipoCompras = Array.from(this.selectedOptions).map(option => option.value);
+            if (selectedTipoCompras.length > 0) {
+                populateNumeroCompraOptions(parsedData.rows, selectedTipoCompras);
+                document.getElementById('numeroCompra').dispatchEvent(new Event('change'));
+            } else {
+                document.getElementById('numeroCompra').innerHTML = '';
+                document.getElementById('fornecedor').innerHTML = '';
+                document.getElementById('itens').innerHTML = '';
+            }
+        });
+
+        document.getElementById('numeroCompra').addEventListener('change', function() {
+            const selectedTipoCompras = Array.from(document.getElementById('tipoCompra').selectedOptions).map(option => option.value);
+            const selectedNumeroCompras = Array.from(this.selectedOptions).map(option => option.value);
+            if (selectedNumeroCompras.length > 0) {
+                populateFornecedorOptions(parsedData.rows, selectedTipoCompras, selectedNumeroCompras);
+                document.getElementById('fornecedor').dispatchEvent(new Event('change'));
+            } else {
+                document.getElementById('fornecedor').innerHTML = '';
+                document.getElementById('itens').innerHTML = '';
+            }
+        });
+
+        document.getElementById('fornecedor').addEventListener('change', function() {
+            const selectedTipoCompras = Array.from(document.getElementById('tipoCompra').selectedOptions).map(option => option.value);
+            const selectedNumeroCompras = Array.from(document.getElementById('numeroCompra').selectedOptions).map(option => option.value);
+            const selectedFornecedores = Array.from(this.selectedOptions).map(option => option.value);
+            if (selectedFornecedores.length > 0) {
+                populateItensOptions(parsedData.rows, selectedTipoCompras, selectedNumeroCompras, selectedFornecedores);
+                document.getElementById('itens').dispatchEvent(new Event('change'));
+            } else {
+                document.getElementById('itens').innerHTML = '';
+                document.getElementById('totalSaldoEmpenho').textContent = 'Total Saldo para Empenho: R$ 0,00';
+            }
+        });
+
+        document.getElementById('itens').addEventListener('change', function() {
+            const selectedItems = Array.from(this.selectedOptions).map(option => option.value);
+            updateTotalSaldoEmpenho(parsedData.rows, selectedItems);
+        });
+
+        let parsedData = null;
+
+        async function loadData(url) {
+            const csvData = await fetchCSV(url);
+            parsedData = parseCSV(csvData);
+            parsedData.rows.forEach(row => {
+                const saldoParaEmpenho = parseFloat(row[10]) * parseFloat(row[9]);
+                row.push(saldoParaEmpenho.toFixed(2));
+                row.push(`${row[1]} - ${row[2]} - ${saldoParaEmpenho.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            });
+            parsedData.headers.push('Saldo para Empenho');
+            parsedData.headers.push('Itens');
+            populateTipoCompraOptions(parsedData.rows);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData('https://raw.githubusercontent.com/hermannvargens/projeto_requisicao/main/df_itens_gerenciadora_final.csv');
+        });
+    </script>
+</body>
+</html>

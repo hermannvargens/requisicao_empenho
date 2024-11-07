@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Requisições</title>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        button {
+            background-color: #28A745;
+            /* Verde Gov.br */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+            /* Mais escuro ao passar o mouse */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            /* Adicionar espaçamento conforme estilo do Gov.br */
+        }
+
+        /* Estilos do header */
+        header {
+            background-color: #007BFF;
+            /* Azul padrão Gov.br */
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            box-shadow: 0 4px 2px -2px gray;
+            border-bottom: 1px solid #ccc;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            justify-content: space-between;
+            /* Espaça o conteúdo do header */
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2em;
+            /* Ajustar conforme o padrão do template Gov.br */
+            flex-grow: 1;
+            /* Permite que o título ocupe o espaço central */
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            /* Alinha verticalmente os elementos */
+            gap: 20px;
+            /* Espaçamento entre os itens */
+        }
+
+        #go-to-requisition {
+            padding: 10px 20px;
+            font-size: 1em;
+        }
+
+        .delete-group-button,
+        .delete-button {
+            background-color: #FF4D4D;
+            /* Vermelho */
+            color: white;
+            /* Texto branco */
+            border: none;
+            /* Remove borda */
+            padding: 10px 15px;
+            border-radius: 5px;
+            /* Bordas arredondadas */
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-group-button:hover,
+        .delete-button:hover {
+            background-color: #FF1A1A;
+            /* Vermelho mais escuro ao passar o mouse */
+        }
+
+        .topbar {
+            background-color: #E9ECEF;
+            /* Cinza claro para contrastar */
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            left: 0;
+            /* Garante que comece desde o início do lado esquerdo */
+            margin: 0;
+            /* Remove qualquer margem padrão */
+        }
+
+        .topbar h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .filter {
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: black;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            /* Alinha os elementos à esquerda */
+        }
+
+        .filter input[type="text"] {
+            width: 100%;
+            /* Garante que o input ocupe toda a largura disponível */
+            margin-top: 5px;
+            /* Espaçamento entre o título e o input */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box;
+            /* Garante que o padding não aumente o tamanho do input */
+        }
+
+        .filter h3 {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .filter .options {
+            padding-left: 10px;
+            margin-top: 5px;
+            text-align: left;
+        }
+
+        .filter .options.hidden {
+            display: none;
+        }
+
+        /* Estilos do conteúdo principal */
+        main {
+            padding: 20px;
+            padding-top: 250px;
+            text-align: center;
+
+        }
+
+        #Fornecedor {
+            max-height: 200px; /* Defina uma altura máxima */
+            overflow-y: auto;  /* Adiciona a barra de rolagem vertical */
+            border: 1px solid #ccc; /* Opcional: adiciona uma borda para delimitar a área */
+            padding: 5px; /* Opcional: adiciona algum espaçamento interno */
+        }
+
+        #Unidade\ de\ Fornecimento {
+            max-height: 200px; /* Define a altura máxima */
+            overflow-y: auto;  /* Adiciona a barra de rolagem vertical */
+            border: 1px solid #ccc; /* Opcional: adiciona uma borda para delimitar a área */
+            padding: 5px; /* Opcional: adiciona espaçamento interno */
+        }
+
+
+
+        #search-bar {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 8px;
+        }
+
+        #product-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .product-item {
+            background-color: #f8f9fa;
+            /* Fundo claro com bordas */
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: justify;
+        }
+
+        .product-item h4 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .product-item p {
+            margin: 5px 0;
+        }
+
+        /* Estilos para os campos de busca dos filtros Fornecedor e Objeto */
+        .filter .search-input {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        .total-button {
+            margin-top: 10px;
+        }
+
+        /* Estilos para a seção sobreposta */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .overlay-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            position: relative;
+            /* Permite posicionamento absoluto dos filhos */
+            max-height: 80%;
+            /* Limite máximo da altura */
+            overflow-y: auto;
+            /* Adiciona rolagem vertical quando necessário */
+            overflow-x: hidden;
+            /* Esconde rolagem horizontal se não for necessária */
+        }
+
+        .close-overlay {
+            position: absolute;
+            /* Posiciona o elemento em relação ao seu contêiner */
+            top: 10px;
+            /* Distância do topo */
+            right: 10px;
+            /* Distância da direita */
+            cursor: pointer;
+            /* Aponta que é interativo */
+            color: red
+                /* Cor do texto */
+        }
+
+        .overlay-group-table {
+            /* Define que a tabela tenha larguras fixas */
+            width: 100%;
+            /* Garante que a tabela ocupe toda a largura disponível */
+        }
+
+        .overlay-group-table th,
+        .overlay-group-table td {
+            width: 50px;
+            /* Define uma largura fixa para todas as colunas */
+            border: 1px solid #ddd;
+            /* Adiciona borda às células */
+            padding: 8px;
+            /* Adiciona espaçamento dentro das células */
+            text-align: center;
+            /* Alinhamento do texto nas células */
+            word-wrap: break-word;
+            /* Quebra o texto se ultrapassar a largura da célula */
+        }
+
+        .overlay-group-table th {
+            background-color: #f2f2f2;
+            /* Cor de fundo dos cabeçalhos da tabela */
+            font-weight: bold;
+        }
+
+        .overlay-group-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .overlay-group-table tbody tr:hover {
+            background-color: #ddd;
+            /* Destaque para a linha ao passar o mouse */
+        }
+
+        #search-bar {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 8px;
+            margin-left: auto;
+            /* Empurra a barra de pesquisa para o lado direito */
+        }
+
+        .header-capacity {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            
+        }
+
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Gerador de Requisições</h1>
+        <div class="header-capacity">
+            <p><strong><a href="http://intranet.pqrmnt5.eb.mil.br/requisicoes/Gerador-de-Requisicoes - Capacidade de Empenho.html" target="_blank">Capacidade de Empenho</a>:</strong> <span id="capacidade-empenho">0.00</span></p>
+
+        </div>
+        <div class="header-actions">
+            <button id="go-to-requisition">Ir para Requisição</button>
+            <p><strong>Valor da Requisição:</strong> R$ <span id="total-requisicao">0,00</span></p>
+            <input type="text" id="search-bar" placeholder="Buscar por Descrição Detalhada...">
+        </div>
+
+        <div class="container">
+            <div class="topbar">
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Tipo de Compra">Tipo de Compra <span
+                            class="toggle-btn">+</span></h3>
+                    <div class="options hidden" id="Tipo de Compra"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Número da Compra">Número da Compra <span
+                            class="toggle-btn">+</span></h3>
+                    <div class="options hidden" id="Número da Compra"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Ano do Pregão">Ano do Pregão <span
+                            class="toggle-btn">+</span></h3>
+                    <div class="options hidden" id="Ano do Pregão"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="UASG">UASG <span class="toggle-btn">+</span></h3>
+                    <div class="options hidden" id="UASG"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Objeto">Objeto <span class="toggle-btn">+</span></h3>
+                    <input type="text" class="options hidden" placeholder="Buscar Objeto..." id="objeto-search">
+                    <div class="options hidden" id="Objeto"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Unidade de Fornecimento">Unidade <span
+                            class="toggle-btn">+</span></h3>
+                    <div class="options hidden" id="Unidade de Fornecimento"></div>
+                </div>
+                <div class="filter">
+                    <h3 class="toggle-header" data-column="Fornecedor">Fornecedor <span class="toggle-btn">+</span></h3>
+                    <input type="text" class="options hidden" placeholder="Buscar Fornecedor..." id="fornecedor-search">
+                    <div class="options hidden" id="Fornecedor"></div>
+                </div>
+                
+            </div>
+        </div>
+
+    </header>
+    <main>
+        <br>
+        <br>
+
+        <div id="product-list"></div>
+    </main>
+
+
+
+    <!-- Seção sobreposta para Requisição -->
+    <div class="overlay" id="overlay">
+        <div class="overlay-content">
+            <h2>Resumo da Requisição</h2>
+            <p>Total da Requisição: R$ <span id="overlay-total-requisicao">0,00</span></p>
+
+            <table>
+                <tbody id="overlay-items-list">
+                    <!-- Os itens serão adicionados aqui dinamicamente -->
+                </tbody>
+            </table>
+            <button id="generate-requisition-button">Gerar Requisição</button>
+            <span class="close-overlay">Voltar</span>
+
+
+        </div>
+        <div id="overlay-container">
+            <div id="overlay-items-list"></div>
+
+        </div>
+
+    </div>
+
+
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const csvUrl = 'https://raw.githubusercontent.com/hermannvargens/projeto_requisicao/main/df_itens_gerenciadora_final.csv';
+
+            let originalData = [];
+            let valorTotalRequisicao = 0; // Armazena o valor total da requisição
+
+            async function fetchCSVData(url) {
+                const response = await fetch(url);
+                const data = await response.text();
+                return csvToJson(data);
+            }
+
+            function csvToJson(csv) {
+                const [headerLine, ...lines] = csv.split("\n").filter(line => line.trim() !== '');
+                const headers = headerLine.split(";");
+                return lines.map(line => {
+                    const values = line.split(";");
+                    return headers.reduce((obj, header, i) => {
+                        obj[header] = values[i];
+                        return obj;
+                    }, {});
+                });
+            }
+
+            function populateFilters(data) {
+                const filterColumns = ["Tipo de Compra", "Número da Compra", "Ano do Pregão", "UASG", "Objeto", "Unidade de Fornecimento", "Fornecedor"];
+
+                filterColumns.forEach(column => {
+                    const uniqueValues = [...new Set(data.map(item => item[column]))].sort();
+                    const filterContainer = document.getElementById(column);
+                    uniqueValues.forEach(value => {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = value;
+                        checkbox.id = `${column}-${value}`;
+                        checkbox.name = column;
+
+                        const label = document.createElement('label');
+                        label.htmlFor = `${column}-${value}`;
+                        label.textContent = value;
+
+                        const div = document.createElement('div');
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+
+                        filterContainer.appendChild(div);
+                    });
+                });
+            }
+
+            function formatarValor(valor) {
+                // Converte o valor para float, se necessário, e formata para BRL
+                const valorFloat = parseFloat(valor);
+                return valorFloat.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+
+
+
+
+
+
+            function displayProducts(data) {
+                const productList = document.getElementById("product-list");
+                productList.innerHTML = '';
+
+                data.forEach(item => {
+                    const maxQtdSaldo = parseInt(item["Qtd. Saldo"], 10);
+
+                    const productItem = document.createElement("div");
+                    productItem.className = "product-item";
+
+                    productItem.innerHTML = `
+                        <h4>${item["Descrição"]}</h4>
+                        <p><strong>Descrição Detalhada:</strong> ${item["Descrição Detalhada"]}</p>
+                        <p><strong>Unidade de Fornecimento:</strong> ${item["Unidade de Fornecimento"]}</p>
+                        <p><strong>Número da Compra:</strong> ${item["Número da Compra"]}</p>
+                        <p><strong>Número do Item:</strong> ${item["Número do Item"]}</p>
+                        <p><strong>Fim da Vigência:</strong> ${item["Fim da Vigência"]}</p>
+                        <p><strong>Valor Unitário:</strong> ${formatarValor(item["Val. Unitário"])}</p>
+                        <p><strong>Capacidade de Empenho:</strong>  ${formatarValor(item["Capacidade de Empenho"])}</p>
+                        <p><strong>Fornecedor:</strong> ${item["Fornecedor"]}</p>
+                        <p><strong>Quantidade:</strong></p>
+                        <select class="quantity-select">
+                            ${Array.from({ length: maxQtdSaldo + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join('')}
+                        </select>
+                        <p><strong>Valor Total do Item:</strong> <span class="total-value">R$ 0,00</span></p>
+                        <button class="add-button total-button">Adicionar à Requisição</button>
+                    `;
+
+                    const selectElement = productItem.querySelector('.quantity-select');
+                    const totalValueElement = productItem.querySelector('.total-value');
+                    const addButton = productItem.querySelector('.add-button');
+
+                    // Atualiza o valor total sempre que a quantidade é alterada
+                    selectElement.addEventListener('change', function () {
+                        const selectedQuantity = parseInt(this.value, 10);
+                        const unitValue = parseFloat(item["Val. Unitário"].replace(",", "."));
+                        const totalValue = (selectedQuantity * unitValue).toFixed(2);
+                        totalValueElement.textContent = formatarValor(totalValue);
+                    });
+
+
+
+                    addButton.addEventListener('click', () => {
+                        const maxQtdSaldo = parseInt(item["Qtd. Saldo"], 10);
+                        const selectedQuantity = parseInt(selectElement.value, 10);
+
+                        if (selectedQuantity > 0) {
+                            const unit = item["Unidade"];
+                            const purchaseNumber = item["Número da Compra"];
+                            const supplier = item["Fornecedor"];
+
+                            const key = `${unit}-${purchaseNumber}-${supplier}`; // Chave para agrupar
+
+                            // Criar ou encontrar o grupo
+                            let groupContainer = document.getElementById(key);
+                            if (!groupContainer) {
+                                groupContainer = document.createElement("div");
+                                groupContainer.id = key;
+                                groupContainer.innerHTML = `
+                                    
+                                    <p style="text-align: left;"><b>Unidade:</b> ${unit}</p>
+                                    <p style="text-align: left;"><b>Número da Compra:</b> ${purchaseNumber}</p>
+                                    <p style="text-align: left;"><b>Fornecedor:</b> ${supplier}</p>
+                                    <table class="overlay-group-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Número do Item</th>
+                                                <th>Descrição</th>
+                                                <th>Valor Unitário</th>
+                                                <th>Qtd.</th>
+                                                <th>Valor Total</th>
+                                                <th>Unidade de Fornecimento</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="overlay-items-group">
+                                        </tbody>
+                                    </table>
+                                    <p style="text-align: left;"><b>Valor Total do Empenho:</b> R$ <span class="total-empenho-value">0,00</span></p>
+                                    <button class="delete-group-button">Excluir Tabela</button>
+
+                                    <br>
+                                    <br>
+                                    
+                                    <!-- Linha horizontal adicionada aqui -->
+                                    <hr style="border: 1px solid #ddd; margin-top: 20px; margin-bottom: 20px;">
+
+                                    
+                                `;
+
+                                // Lógica para excluir o grupo
+                                const deleteGroupButton = groupContainer.querySelector('.delete-group-button');
+                                deleteGroupButton.addEventListener('click', () => {
+                                    groupContainer.remove(); // Remove todo o grupo
+                                    updateTotalRequisicao(); // Atualiza o total da requisição após remoção
+                                });
+
+                                document.getElementById("overlay-items-list").appendChild(groupContainer);
+                            }
+
+                            // Adicionar item à tabela do grupo
+                            const overlayItemsGroup = groupContainer.querySelector(".overlay-items-group");
+                            const unitValue = parseFloat(item["Val. Unitário"].replace(",", "."));
+                            const totalValue = (selectedQuantity * unitValue).toFixed(2).replace(".", ",");
+
+                            const newItemRow = document.createElement("tr");
+                            newItemRow.innerHTML = `
+                                <td>${item["Número do Item"]}</td>
+                                <td>${item["Descrição"]}</td>
+                                <td>R$ ${parseFloat(item["Val. Unitário"]).toFixed(2).replace(".", ",")}</td>
+   
+                                <td>
+                                    <select class="overlay-quantity-select">
+                                        ${Array.from({ length: maxQtdSaldo + 1 }, (_, i) => `<option value="${i}" ${i === selectedQuantity ? 'selected' : ''}>${i}</option>`).join('')}
+                                    </select>
+                                </td>
+                                <td class="total-item-value">R$ ${totalValue}</td>
+                                <td>${item["Unidade de Fornecimento"]}</td>
+                                <td><button class="delete-button">Excluir</button></td>
+                            `;
+
+                            // Função para excluir uma linha
+                            const deleteButton = newItemRow.querySelector('.delete-button');
+                            deleteButton.addEventListener('click', () => {
+                                const rowTotalValue = parseFloat(totalValue);
+                                valorTotalRequisicao -= rowTotalValue;
+                                newItemRow.remove();
+                                updateTotalRequisicao();
+                                updateEmpenhoTotal(groupContainer);
+                                
+                                
+                            });
+
+                            // Função para atualizar o valor total quando a quantidade muda
+                            const quantitySelect = newItemRow.querySelector('.overlay-quantity-select');
+                            const totalItemValueCell = newItemRow.querySelector('.total-item-value');
+
+                            quantitySelect.addEventListener('change', function () {
+                                const selectedQty = parseInt(this.value, 10);
+                                const updatedTotalValue = (selectedQty * unitValue).toFixed(2).replace(".", ",");
+                                totalItemValueCell.textContent = `R$ ${updatedTotalValue}`;
+                                updateTotalRequisicao();
+                                updateEmpenhoTotal(groupContainer);
+                            });
+
+                            overlayItemsGroup.appendChild(newItemRow);
+                            valorTotalRequisicao += parseFloat(totalValue);
+                            updateTotalRequisicao();
+                            updateEmpenhoTotal(groupContainer);  // Atualizar o valor total do empenho ao adicionar novo item
+                        }
+                    });
+
+                    // Função para atualizar o total da requisição
+                    function updateTotalRequisicao() {
+                        const totalItems = Array.from(document.querySelectorAll('.total-item-value'));
+                        const newTotal = totalItems.reduce((sum, cell) => {
+                            const value = parseFloat(cell.textContent.replace("R$", "").replace(",", "."));
+                            return sum + (isNaN(value) ? 0 : value);
+                        }, 0);
+                        document.getElementById('total-requisicao').textContent = newTotal.toFixed(2).replace(".", ",");
+                        document.getElementById('overlay-total-requisicao').textContent = newTotal.toFixed(2).replace(".", ",");
+                    }
+
+                    // Função para atualizar o valor total do empenho
+                    function updateEmpenhoTotal(groupContainer) {
+                        const totalItemValues = groupContainer.querySelectorAll('.total-item-value');
+                        const empenhoTotal = Array.from(totalItemValues).reduce((sum, cell) => {
+                            const value = parseFloat(cell.textContent.replace("R$", "").replace(",", "."));
+                            return sum + (isNaN(value) ? 0 : value);
+                        }, 0);
+                        groupContainer.querySelector('.total-empenho-value').textContent = empenhoTotal.toFixed(2).replace(".", ",");
+                    }
+
+                    productList.appendChild(productItem);
+                });
+            }
+
+            document.getElementById("go-to-requisition").addEventListener("click", function () {
+                document.getElementById("overlay-total-requisicao").textContent = valorTotalRequisicao.toFixed(2).replace(".", ",");
+                document.getElementById("overlay").style.display = "flex";
+            });
+
+            document.querySelector(".close-overlay").addEventListener("click", function () {
+                document.getElementById("overlay").style.display = "none";
+            });
+
+            function applyFilters(data) {
+                const filterColumns = ["Tipo de Compra", "Número da Compra", "Ano do Pregão", "UASG", "Objeto", "Unidade de Fornecimento", "Fornecedor"];
+                const searchTerm = document.getElementById("search-bar").value.toLowerCase();
+
+                return data.filter(item => {
+                    const matchesSearch = item["Descrição Detalhada"].toLowerCase().includes(searchTerm);
+
+                    const matchesFilters = filterColumns.every(column => {
+                        const checkedBoxes = Array.from(document.querySelectorAll(`input[name="${column}"]:checked`));
+                        if (checkedBoxes.length === 0) return true;
+                        return checkedBoxes.some(box => box.value === item[column]);
+                    });
+
+                    return matchesSearch && matchesFilters;
+                });
+            }
+
+            document.querySelectorAll(".toggle-header").forEach(header => {
+                header.addEventListener("click", function () {
+                    const column = header.dataset.column;
+                    const optionsContainer = document.getElementById(column);
+                    const searchInput = document.getElementById(`${column.toLowerCase()}-search`);
+                    const toggleBtn = header.querySelector(".toggle-btn");
+
+                    optionsContainer.classList.toggle("hidden");
+                    toggleBtn.textContent = optionsContainer.classList.contains("hidden") ? "+" : "-";
+
+                    // Mostrar campo de busca apenas no filtro Fornecedor e Objeto
+                    if (searchInput) {
+                        searchInput.classList.toggle("hidden");
+                    }
+                });
+            });
+
+            // Função para calcular a soma da "Capacidade de Empenho" dos itens filtrados
+            function calcularCapacidadeEmpenho(filteredData) {
+                const capacidadeTotal = filteredData.reduce((sum, item) => {
+                    const capacidade = parseFloat(item["Capacidade de Empenho"]) || 0; // Captura a capacidade e garante que seja um número
+                    return sum + capacidade;
+                }, 0);
+                document.getElementById('capacidade-empenho').textContent = formatarValor(capacidadeTotal.toFixed(2)); // Atualiza o campo com o valor total
+            }
+
+
+            document.addEventListener("change", function (e) {
+                if (e.target.type === "checkbox") {
+                    const filteredData = applyFilters(originalData);
+                    displayProducts(filteredData);
+                    calcularCapacidadeEmpenho(filteredData); 
+                }
+            });
+
+            document.getElementById("search-bar").addEventListener("input", function () {
+                const filteredData = applyFilters(originalData);
+                displayProducts(filteredData);
+                calcularCapacidadeEmpenho(filteredData); 
+            });
+
+            document.getElementById("fornecedor-search").addEventListener("input", function () {
+                const searchTerm = this.value.toLowerCase();
+                const checkboxes = document.querySelectorAll("#Fornecedor input[type='checkbox']");
+
+                checkboxes.forEach(checkbox => {
+                    const label = checkbox.nextElementSibling.textContent.toLowerCase();
+                    checkbox.parentElement.style.display = label.includes(searchTerm) ? "block" : "none";
+                });
+            });
+
+            document.getElementById("objeto-search").addEventListener("input", function () {
+                const searchTerm = this.value.toLowerCase();
+                const checkboxes = document.querySelectorAll("#Objeto input[type='checkbox']");
+
+                checkboxes.forEach(checkbox => {
+                    const label = checkbox.nextElementSibling.textContent.toLowerCase();
+                    checkbox.parentElement.style.display = label.includes(searchTerm) ? "block" : "none";
+                });
+            });
+
+            // Fetch and display data
+            fetchCSVData(csvUrl).then(data => {
+                originalData = data;
+                populateFilters(data);
+                displayProducts(data);
+                calcularCapacidadeEmpenho(data);
+            });
+            
+
+            // Função para gerar o arquivo HTML da seção "overlay"
+            document.getElementById('generate-requisition-button').addEventListener('click', () => {
+                // Clonar o conteúdo da seção "overlay"
+                const overlayClone = document.getElementById('overlay-items-list').cloneNode(true);
+
+                // Remover os botões "Excluir Grupo" antes de clonar
+                const deleteGroupButtons = overlayClone.querySelectorAll('.delete-group-button');
+                deleteGroupButtons.forEach(button => button.remove()); // Remove os botões de exclusão
+
+                // Para cada linha, substituir o select pelo valor selecionado
+                const selects = overlayClone.querySelectorAll('.overlay-quantity-select');
+                selects.forEach(select => {
+                    const selectedValue = select.value;  // Captura o valor selecionado
+                    const td = select.parentElement;  // O <td> que contém o <select>
+                    td.textContent = selectedValue;  // Substitui o <select> pelo valor selecionado
+                });
+
+                // Remover a coluna "Ações" da tabela
+                const actionHeaders = overlayClone.querySelectorAll('th:nth-child(7), td:nth-child(7)'); // Seleciona a coluna "Ações"
+                actionHeaders.forEach(header => header.remove()); // Remove os cabeçalhos e células da coluna "Ações"
+
+                // Capturar o conteúdo HTML modificado
+                let overlayContent = overlayClone.outerHTML;
+
+                // Aplicar o estilo inline diretamente na tabela, cabeçalhos e células usando replace para todas as ocorrências
+                overlayContent = overlayContent
+                    // Adicionando estilo à tabela
+                    .replace(/<table/g, '<table align="center" border="1" cellpadding="5" cellspacing="0" style="width:100%"')
+
+                    // Adicionando estilo ao cabeçalho (th)
+                    .replace(/<th>/g, '<th style="text-align: center; font-weight: bold">')
+
+                    // Adicionando estilo às células (td), garantindo centralização
+                    .replace(/<td>/g, '<td style="text-align: center;">')
+
+
+                    // Adicionando estilo às células da coluna "Valor Total" para garantir centralização
+                    .replace(/<td class="total-item-value">/g, '<td class="total-item-value" style="text-align: center;">')
+
+
+                    // Adicionando estilo às linhas do corpo da tabela (tr)
+                    .replace(/<tr>/g, '<tr style="text-align: center;">');
+
+                // Template do HTML que será gerado com estilos inline
+                const htmlContent = `
+            <html>
+            <head></head>
+            <body>
+                <p>1. Solicito a emiss&atilde;o de empenho para a aquisi&ccedil;&atilde;o de material/contrata&ccedil;&atilde;o de servi&ccedil;o especificada abaixo:</p>
+                <p>&nbsp;</p>
+                <p><strong>a. Modalidade:</strong></p>
+                <p>( ) Preg&atilde;o SRP Unidade Gestora Gerenciadora (UGG);</p>
+                <p>( ) Preg&atilde;o SRP Unidade Gestora Participante (UGP);</p>
+                <p>( ) Preg&atilde;o SRP Unidade Gestora N&atilde;o Participante (UGNP);</p>
+                <p>( ) Dispensa de Licita&ccedil;&atilde;o;</p>
+                <p>( ) Inexigibilidade de Licita&ccedil;&atilde;o; e</p>
+                <p>( ) N&atilde;o se aplica (empenho SIAFI).</p>
+                <p>&nbsp;</p>
+
+                <p><strong>b. Tipo de Empenho</strong>:</p>
+                <p>( ) Ordin&aacute;rio;</p>
+                <p>( ) Global; e</p>
+                <p>( ) Estimativo.</p>
+                <p>&nbsp;</p>
+
+                <p><strong>c. Alinhamento ao Objetivo Estrat&eacute;gico Organizacional:</strong></p>
+                <p>( ) OEO1: Estreitar o relacionamento com as OM apoiadas pelo Pq R Mnt/5, de forma a ouvir suas opini&otilde;es e sugest&otilde;es como aux&iacute;lio para a tomada de decis&atilde;o;</p>
+                <p>(X) OEO2: Produzir poder de combate, cumprindo as miss&otilde;es relacionadas &agrave; atividade-fim da OM, em especial o apoio na fun&ccedil;&atilde;o log&iacute;stica manuten&ccedil;&atilde;o, adequando a capacidade administrativa e produtiva &agrave;s miss&otilde;es recebidas;</p>
+                <p>( ) OEO3: Cultivar uma mentalidade de medi&ccedil;&atilde;o e compara&ccedil;&atilde;o de dados quanto &agrave;s a&ccedil;&otilde;es cr&iacute;ticas;</p>
+                <p>( ) OEO4: Ampliar a mentalidade de planejamento e controle de despesas;</p>
+                <p>( ) OEO5: Fomentar a inser&ccedil;&atilde;o positiva da imagem da OM junto &agrave; sociedade local;</p>
+                <p>( ) OEO6: Buscar o fortalecimento da dimens&atilde;o humana dos militares e servidores civisdo Pq R Mnt/5.</p>
+                <p>&nbsp;</p>
+
+                <p><strong>d. Justificativa da aquisi&ccedil;&atilde;o/contrata&ccedil;&atilde;o: </strong>Esta requisi&ccedil;&atilde;o tem como finalidade adquirir materiais para adequar o PqRMnt/5 &agrave; legisla&ccedil;&atilde;o ambiental vigente.</p>
+                <p><strong>e. Dota&ccedil;&atilde;o or&ccedil;ament&aacute;ria:</strong>&nbsp;</p>
+                <p><strong>- N&ordm; NC:</strong> XXXXXXXXXXXXXXXXX;</p>
+                <p><strong>- PI:</strong> XXXXXXXXXXXXXXXXX;</p>
+                <p><strong>- ND:</strong> XXXXXXXXXXXXXXXXX</p>
+                <p>&nbsp;</p>
+                
+                ${overlayContent}
+                
+                <p>&nbsp;</p>
+                <p style="text-align:center"><strong>MATHEUS AUGUSTO DA MATTA DE CARVALHO - TC</strong><br />
+                <br />
+                Chefe da Divis&atilde;o T&eacute;cnica</p>
+                <p style="text-align:center">&nbsp;</p>
+                <p>&nbsp;</p>
+                <p><strong>2. Aprova&ccedil;&atilde;o do Fiscal Administrativo:</strong></p>
+                <p>a. na qualidade de Fiscal Administrativo, recebi e analisei o presente documento quanto ao atendimento das formalidades necess&aacute;rias;</p>
+                <p>b. aprovo a aquisi&ccedil;&atilde;o do material.</p>
+                <p>&nbsp;</p>
+                <p style="text-align:center"><strong>WILLIAM DE CRISTO BERNARDIN DE ANDRADE - Maj</strong><br />
+                Fiscal Administrativo</p>
+                <p>&nbsp;</p>
+
+                <p><strong>3. Despacho do OD:</strong></p>
+                <p>a. autorizo a aquisi&ccedil;&atilde;o do material e determino a abertura do Processo Administrativo correspondente;</p>
+                <p>b. a Se&ccedil;&atilde;o de Aquisi&ccedil;&otilde;es, Licita&ccedil;&otilde;es e Contratos adote as provid&ecirc;ncias cab&iacute;veis, de acordo com as normas em vigor;</p>
+                <p>c. estou de acordo com as justificativas do requisitante.</p>
+                <p>&nbsp;</p>
+                <p style="text-align:center"><strong>CARLOS ADRIANO ALVES DE TOLEDO - TC</strong><br />
+                Ordenador de Despesas do Parque Regional de Manuten&ccedil;&atilde;o/5</p>
+            </body>
+            </html>
+            `;
+
+                // Criar um blob do conteúdo HTML
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+
+                // Criar um link temporário para download
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'requisicao.html'; // Nome do arquivo HTML gerado
+                //link.click(); // Simular o clique para baixar o arquivo
+
+                // Copia o conteúdo HTML para a área de transferência
+                copyToClipboard(htmlContent);
+
+                // Liberar o objeto Blob da memória
+                URL.revokeObjectURL(link.href);
+            });
+
+
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Requisição copiada com sucesso!')
+            }
+
+
+
+
+        });
+    </script>
+</body>
+
+</html>
