@@ -11,7 +11,7 @@ import math
 import pandas as pd
 import numpy as np
 
-def obter_linhas(n, driver, objeto_pregao, UASG_Gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao): # n é o total de itens na página
+def obter_linhas(n, driver, objeto_pregao, UASG_Gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao, fim_vigencia): # n é o total de itens na página
     
     # Localiza a tabela
     tabela_itens = driver.find_element(By.ID, 'item')
@@ -177,13 +177,16 @@ def obter_linhas(n, driver, objeto_pregao, UASG_Gerenciadora, numero_licitacao, 
 
 
 
-def obter_dados(UASG,num_licitacao,ano_licitacao):
+def obter_dados(UASG,num_licitacao,ano_licitacao, fim_vigencia):
 
     linhas = []
 
     url = "https://www2.comprasnet.gov.br/siasgnet-atasrp/public/pesquisarItemSRP.do?method=iniciar&parametro.identificacaoCompra.numeroUasg="+str(UASG)+"&parametro.identificacaoCompra.modalidadeCompra=5&parametro.identificacaoCompra.numeroCompra="+str(num_licitacao)+"&parametro.identificacaoCompra.anoCompra="+str(ano_licitacao)
 
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    #driver = webdriver.Chrome()
     driver.get(url)
     # Espera um pouco para garantir que a nova página carregue
     time.sleep(5)  # Ajuste o tempo conforme necessário
@@ -223,7 +226,7 @@ def obter_dados(UASG,num_licitacao,ano_licitacao):
 
         try:
     
-            linha = obter_linhas(n, driver, objeto_pregao, UASG_gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao)
+            linha = obter_linhas(n, driver, objeto_pregao, UASG_gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao, fim_vigencia)
     
             if linha != None:
             
@@ -251,7 +254,7 @@ def obter_dados(UASG,num_licitacao,ano_licitacao):
     
                 try:
     
-                    linha = obter_linhas(n, driver, objeto_pregao, UASG_gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao)
+                    linha = obter_linhas(n, driver, objeto_pregao, UASG_gerenciadora, numero_licitacao, ano_licitacao, modalidade_licitacao, fim_vigencia)
     
                     if linha != None:
                         linhas.append(linha)
@@ -278,7 +281,7 @@ def obter_dados(UASG,num_licitacao,ano_licitacao):
     return linhas
 
 
-def gerar_df(linhas):
+def gerar_df(linhas, fim_vigencia):
 
     
     #atribuir nome às colunas do df obtido
@@ -322,7 +325,7 @@ def gerar_df(linhas):
               ]
     
     inicio_vigencia = None
-    fim_vigencia = None
+    #fim_vigencia = None
     qtd_autorizada = df_itens_gerenciadora['Qtd. Saldo']
     unidade =  df_itens_gerenciadora['UASG']
     
@@ -461,18 +464,19 @@ def calcular_saldo():
     df_qtd['key'] = df_qtd['UASG'] + "_"+ df_qtd['Número do Pregão'] + "_"+ df_qtd['Ano do Pregão'] + "_"+ df_qtd['Número do Item']
     df_qtd = df_qtd.groupby('key', as_index=False)['QUANTIDADE'].sum()
     
-    df_final_sem_vigencia = pd.merge(df_itens, df_qtd, on='key', how='left')
+    #apagar
+    #df_final_sem_vigencia = pd.merge(df_itens, df_qtd, on='key', how='left')
+    #df_vigencia = obter_vigencia()
+    #df_final = pd.merge(df_final_sem_vigencia, df_vigencia, on='key', how='left')
 
-    df_vigencia = obter_vigencia()
-
-    df_final = pd.merge(df_final_sem_vigencia, df_vigencia, on='key', how='left')
+    df_final = pd.merge(df_itens, df_qtd, on='key', how='left')
     
     df_final = df_final[['Número da Compra', 'Número do Item', 'Descrição',
            'Descrição Detalhada', 
            'Unidade', 'Qtd. Autorizada', 'Fornecedor', 'Val. Unitário',
            'Qtd. Saldo', 'Marca', 'Tipo de Compra', 'Número do Pregão',
             'Ano do Pregão', 'UASG','Objeto', 'Unidade de Fornecimento', 'UG',
-           'QUANTIDADE','Início da Vigência_y','Fim da Vigência_y']]
+           'QUANTIDADE','Início da Vigência','Fim da Vigência']]
     
     df_final.columns = ['Número da Compra', 'Número do Item', 'Descrição',
            'Descrição Detalhada', 
@@ -480,6 +484,7 @@ def calcular_saldo():
            'Qtd. Saldo', 'Marca', 'Tipo de Compra', 'Número do Pregão',
            'Ano do Pregão', 'UASG', 'Objeto', 'Unidade de Fornecimento', 'UG',
            'Quantidade Empenhada','Início da Vigência', 'Fim da Vigência']
+    
     
     df_final.loc[:,'Quantidade Empenhada'] = df_final.loc[:,'Quantidade Empenhada'].replace(np.NaN,0)    
     df_final.loc[:,'Qtd. Autorizada'] = df_final.loc[:,'Qtd. Autorizada'].astype(float)    
@@ -500,7 +505,7 @@ def calcular_saldo():
 
 def iniciar():
     while True:
-        opcao = input("O que você gostaria de fazer? Digite o número da opção: \n 1 - Atualizar saldo \n 2 - Ver Pregões Salvos \n 3 - Obter dados de novo pregão \n 4 - Apagar dados de pregão existente\n 5 - Sair\n")
+        opcao = input("O que você gostaria de fazer? Digite o número da opção: \n 1 - Atualizar saldo e Gerar arquivo final \n 2 - Ver Pregões Salvos \n 3 - Obter dados de novo pregão \n 4 - Apagar dados de pregão existente\n 5 - Sair\n")
 
         if opcao == "1":
             # Opção para atualizar o saldo
@@ -529,9 +534,10 @@ def iniciar():
             UASG = input("Digite o número da UASG:")
             num_licitacao = input("Digite o número da licitação:")
             ano_licitacao = input("Digite o ano da licitação:")
+            fim_vigencia = input("Digite o Fim da Vigência (DD/MM/AAAA):")
 
-            linhas = obter_dados(UASG, num_licitacao, ano_licitacao)
-            df_itens_gerenciadora_novo = gerar_df(linhas)
+            linhas = obter_dados(UASG, num_licitacao, ano_licitacao, fim_vigencia)
+            df_itens_gerenciadora_novo = gerar_df(linhas, fim_vigencia)
 
             df_itens_gerenciadora_novo = df_itens_gerenciadora_novo.sort_values(['Número da Compra','Número do Pregão','Número do Item'])
             df_itens_gerenciadora_novo.to_csv('df_itens_gerenciadora_novo.csv', sep=';', encoding='utf-8', index=False)
@@ -554,7 +560,7 @@ def iniciar():
                 except:
                     print('Não há dados salvos.')
 
-            opcao_atualizar = input("Gostaria de atualizar o saldo dos itens? \n 1 - Sim \n 2 - Não\n")
+            opcao_atualizar = input("Gostaria de atualizar o saldo dos itens e Gerar arquivo final? \n 1 - Sim \n 2 - Não\n")
            
             if opcao_atualizar == "1":
                 df_empenhos_concatenado = concatenar_arquivos_empenho_CSV()
